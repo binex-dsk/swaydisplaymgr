@@ -54,6 +54,8 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 private:
+    void refreshTextBoxes();
+
     QList<SwayDisplay *> m_displays;
 
     SwayDisplay *m_selectedDisplay;
@@ -71,10 +73,16 @@ private:
     QGridLayout *m_layout;
     QHBoxLayout *m_coordinatesLayout;
 
+    QPointF m_dragStart{};
+    bool m_dragReady = false;
+    QPointF m_dragDiff{};
+
 public:
     MainWindow(QWidget *parent = nullptr);
     void refreshDisplays();
     void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
     void paintEvent(QPaintEvent *paintEvent);
 
     ~MainWindow();

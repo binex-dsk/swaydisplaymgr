@@ -9,7 +9,10 @@ SwayDisplay::SwayDisplay(double x, double y, double width, double height, QStrin
 {}
 
 QRectF SwayDisplay::getRect() {
-    qsizetype divisor = qMax(width, height) / 250.; // TODO: dynamically scale based upon display size?
-
+    double divisor = getDivisor();
     return QRectF(x / divisor, y / divisor, width / divisor, height / divisor);
+}
+
+double SwayDisplay::getDivisor() {
+    return qMax(width, height) / 250.; // TODO: dynamically scale based upon display size?
 }

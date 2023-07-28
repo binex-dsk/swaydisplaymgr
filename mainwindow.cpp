@@ -3,6 +3,7 @@
 #include <QProcess>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QApplication>
 
 void updateSelectedDisplay(SwayDisplay *selectedDisplay) {
     QString program = "swaymsg";
@@ -21,6 +22,13 @@ void updateSelectedDisplay(SwayDisplay *selectedDisplay) {
         }
     });
     process->start(program, args);
+}
+
+void MainWindow::refreshTextBoxes() {
+    m_x->setEditText(QString::number(m_selectedDisplay->x));
+    m_y->setEditText(QString::number(m_selectedDisplay->y));
+    m_width->setEditText(QString::number(m_selectedDisplay->width));
+    m_height->setEditText(QString::number(m_selectedDisplay->height));
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -101,6 +109,8 @@ void MainWindow::refreshDisplays() {
             SwayDisplay *d = new SwayDisplay(x, y, width, height, name);
             m_displays.push_back(d);
 
+            // TODO: more settings in general.
+            // TODO: input settings
             repaint();
         }
     });
@@ -108,33 +118,52 @@ void MainWindow::refreshDisplays() {
     process->start(program, args);
 }
 
-void MainWindow::mousePressEvent(QMouseEvent *mouseEvent) {
+void MainWindow::mousePressEvent(QMouseEvent *event) {
     for (int i = 0; i < m_displays.size(); ++i) {
         SwayDisplay *d = m_displays[i];
-        if (d->getRect().contains(mouseEvent->position())) {
-            m_x->setEditText(QString::number(d->x));
-            m_y->setEditText(QString::number(d->y));
-            m_width->setEditText(QString::number(d->width));
-            m_height->setEditText(QString::number(d->height));
-
+        if (d->getRect().contains(event->position())) {
             m_selectedDisplay = d;
+            refreshTextBoxes();
+
+            m_dragStart = event->position();
+            m_dragReady = true;
+            m_dragDiff = event->position() - QPointF(d->x / d->getDivisor(), d->y / d->getDivisor());
         }
     }
 
     repaint();
 }
 
+void MainWindow::mouseMoveEvent(QMouseEvent *event) {
+    if (!(event->buttons() & Qt::LeftButton)
+        ||
+        (event->pos() - m_dragStart).manhattanLength() < QApplication::startDragDistance()
+        ||
+        !m_dragReady) {
+        return;
+    }
+
+    double mult = m_selectedDisplay->getDivisor();
+    m_selectedDisplay->x = qRound(event->position().x() * mult - m_dragDiff.x());
+    m_selectedDisplay->y = qRound(event->position().y() * mult - m_dragDiff.y());
+    refreshTextBoxes();
+    repaint();
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
+    refreshTextBoxes();
+    m_dragReady = false;
+}
+
 void MainWindow::paintEvent(QPaintEvent *paintEvent) {
-    qDebug() << "hi";
     for (int i = 0; i < m_displays.size(); ++i) {
         // make displays
         SwayDisplay *d = m_displays[i];
 
         QRectF rect = d->getRect(); // TODO: center this
-        // TODO: drag and drop?
 
         QPainter painter(this);
-        painter.setPen(Qt::white);
+        painter.setPen(QPen(QBrush(Qt::white), 5));
         painter.drawRect(rect);
         painter.fillRect(rect, colors[i]);
 
